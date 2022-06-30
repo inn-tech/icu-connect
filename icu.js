@@ -29,6 +29,7 @@ var enrollBatchIndex = 0
 var noFaceCount = 0
 var faceCount = 0
 var readySent = false
+var disconnectSent = true
 
 
 
@@ -64,8 +65,15 @@ function SetState(main_callback){
           // do nothing             
             break;
           case SM_CONNECT:
+            if(!disconnectSent){
+              var c_data = {
+                'device_connected':false,
+              }
+              disconnectSent = true;
+              main_callback(c_data)              
+            }            
             readySent = false
-            api.getToken('apiuser', 'apipassword', function (statusCode, apiresponse) {
+            api.getToken(function (statusCode, apiresponse) {
               if (statusCode == 200) {
                 token = apiresponse.access_token
                 smState = SM_DETAIL
@@ -86,6 +94,7 @@ function SetState(main_callback){
                   main_callback(c_data)
                   smState = SM_PURGE_FACES
                 }else{
+                  disconnectSent = false                  
                   smState = SM_CONNECT;
                 }
               });
@@ -101,7 +110,8 @@ function SetState(main_callback){
                   api.deleteFaces(token,facedel,function(statusCode,apiresponse){
                     if(statusCode == 200){
                       smState = SM_GET_SETTINGS
-                    }else{s
+                    }else{
+                      disconnectSent = false
                       smState = SM_CONNECT;
                     }
                   });     
@@ -110,10 +120,11 @@ function SetState(main_callback){
               case SM_GET_SETTINGS:
                   api.getDeviceSettings(token,function(statusCode,apiresponse){
                       if(statusCode == 200){
-                      icuDeviceSetting = apiresponse;
-                      smState = SM_SET_SETTINGS
+                        icuDeviceSetting = apiresponse;
+                        smState = SM_SET_SETTINGS
                       }else{
-                      smState = SM_CONNECT;
+                        disconnectSent = false                        
+                        smState = SM_CONNECT;
                       }
                   });
                   smState = SM_WAIT;             
@@ -129,9 +140,10 @@ function SetState(main_callback){
                   }
                   api.setDeviceSettings(token,ab,function(statusCode,apiresponse){
                       if(statusCode == 200){              
-                      smState = SM_POLL
+                        smState = SM_POLL
                       }else{
-                      smState = SM_CONNECT;
+                        disconnectSent = false;                        
+                        smState = SM_CONNECT;
                       }
                   });
                   smState = SM_WAIT;             
@@ -157,6 +169,7 @@ function SetState(main_callback){
                           }              
                           });         
                       }else{
+                          disconnectSent = false
                           smState = SM_CONNECT;
                       }
                   });
@@ -206,10 +219,8 @@ function parsePoll(apiresponse, callback)
 
   var data = null
 
-  if(apiresponse.FaceInFrame[0].Face){
-
-   // if( apiresponse.Detections.length > 0  ){    
-    
+  if(('FaceInFrame' in apiresponse && apiresponse.FaceInFrame[0].Face) || 
+      (apiresponse.Detections !== null && apiresponse.Detections.length > 0) ){
 
         noFaceCount = 0
         faceCount++

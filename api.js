@@ -6,7 +6,9 @@ var api_options = {
     'ip':'192.168.137.8',
     'api_path':'/api/v1_0',    
     'port':44345,
-    'ssl':true
+    'ssl':true,
+    'username':'',
+    'password':''
 }
 
 
@@ -18,14 +20,13 @@ module.exports = {
             api_options[key] = op[key]
           });  
     },
-     getToken:function (username, password, callback) {
+     getToken:function (callback) {
 
     var data = qs.stringify({
         grant_type: 'password',
-        username: username,
-        password: password
+        username: api_options.username,
+        password: api_options.password
     });
-
 
 
     const options = {
