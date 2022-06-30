@@ -11,7 +11,6 @@ var db = new sqlite3.Database(databasePath, sqlite3.OPEN_READWRITE, (err) => {
         createDatabase();
         return;
         } else if (err) {
-            console.log("Getting error " + err);
             exit(1);
     }
    // runQueries(db);
@@ -20,10 +19,9 @@ var db = new sqlite3.Database(databasePath, sqlite3.OPEN_READWRITE, (err) => {
 
 
 function createDatabase() {
-    console.log('create new database',databasePath)
+
     var newdb = new sqlite3.Database(databasePath, (err) => {
         if (err) {
-            console.log("Getting error " + err);
             exit(1);
         }
         createTables(newdb);

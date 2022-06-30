@@ -28,179 +28,176 @@ var enrollBatchIndex = 0
 
 var noFaceCount = 0
 var faceCount = 0
+var readySent = false
+
+
+
+function SetOptions(op)
+{
+  api.setOptions(op)
+}
 
 
 
 function NewFaceData(data){
-  console.log('new face data')
 
   // add data to array
-  enrollData.push(data)
+//  enrollData.push(data)
 
 }
 
 
-
-async function RunSM(main_callback) {
-
-    console.log('new SM start')
-    runSM = true;
-    while (runSM) {
-
-      // check for any enrollments (any items on array)
-      if(smState == SM_POLL && enrollData.length > 0){   
-        // get the first array item
-          var face = enrollData.pop()   
-          // save it to the database. The state-machine will then see a new addition and send it to the ICU
-          SaveFace(face,function(result){
-              console.log('face save')
-          })
-      }      
+function SetState(main_callback){
 
 
-        switch (smState) {
-            case SM_WAIT:
-              await sleep(50);              
-              break;
-            case SM_CONNECT:
-              console.log('start connect')
-              api.getToken('apiuser', 'apipassword', function (statusCode, apiresponse) {
-                console.log('connect',statusCode);
-                if (statusCode == 200) {
-                  token = apiresponse.access_token
-                  smState = SM_DETAIL
-                  console.log('Connected')
-                } else {
-                    console.log('fail connect')                  
-                  smState = SM_CONNECT
+    // check for any enrollments (any items on array)
+    if(smState == SM_POLL && enrollData.length > 0){   
+      // get the first array item
+        var face = enrollData.pop()   
+        // save it to the database. The state-machine will then see a new addition and send it to the ICU
+        SaveFace(face)
+    }      
+
+
+      switch (smState) {
+          case SM_WAIT:
+          // do nothing             
+            break;
+          case SM_CONNECT:
+            readySent = false
+            api.getToken('apiuser', 'apipassword', function (statusCode, apiresponse) {
+              if (statusCode == 200) {
+                token = apiresponse.access_token
+                smState = SM_DETAIL
+              } else {                 
+                smState = SM_CONNECT
+              }
+            });
+            smState = SM_WAIT;
+            break;
+            case SM_DETAIL:
+              api.getDeviceDetail(token,function(statusCode,apiresponse){
+                if(statusCode == 200){
+                  icuDeviceDetail = apiresponse;
+                  var c_data = {
+                    'device_connected':true,
+                    'device_data':icuDeviceDetail
+                  }
+                  main_callback(c_data)
+                  smState = SM_PURGE_FACES
+                }else{
+                  smState = SM_CONNECT;
                 }
               });
-              smState = SM_WAIT;
-              break;
-              case SM_DETAIL:
-                api.getDeviceDetail(token,function(statusCode,apiresponse){
-                  if(statusCode == 200){
-                    icuDeviceDetail = apiresponse;
-                    console.log('ICU Device:',icuDeviceDetail.DeviceName,'Build Version:',icuDeviceDetail.SWBuildVersion)
-                    smState = SM_PURGE_FACES
-                  }else{
-                    smState = SM_CONNECT;
+              smState = SM_WAIT;          
+              break;        
+              case SM_PURGE_FACES:
+                main_callback({
+                  'device_state':'initialising'
+                })
+                  var facedel = {
+                    uid:["all"]
                   }
-                });
-                smState = SM_WAIT;          
-                break;        
-                case SM_PURGE_FACES:
-                    var facedel = {
-                      uid:["all"]
+                  api.deleteFaces(token,facedel,function(statusCode,apiresponse){
+                    if(statusCode == 200){
+                      smState = SM_GET_SETTINGS
+                    }else{s
+                      smState = SM_CONNECT;
                     }
-                    api.deleteFaces(token,facedel,function(statusCode,apiresponse){
+                  });     
+                  smState = SM_WAIT;     
+                  break;   
+              case SM_GET_SETTINGS:
+                  api.getDeviceSettings(token,function(statusCode,apiresponse){
                       if(statusCode == 200){
-                        smState = SM_GET_SETTINGS
-                        console.log('faces purged')
-                      }else{s
-                        smState = SM_CONNECT;
+                      icuDeviceSetting = apiresponse;
+                      smState = SM_SET_SETTINGS
+                      }else{
+                      smState = SM_CONNECT;
                       }
-                    });     
-                    smState = SM_WAIT;     
-                    break;   
-                case SM_GET_SETTINGS:
-                    api.getDeviceSettings(token,function(statusCode,apiresponse){
-                        if(statusCode == 200){
-                        icuDeviceSetting = apiresponse;
-                        console.log(icuDeviceSetting.Cameras[0].Active_Box)
-                        smState = SM_SET_SETTINGS
-                        }else{
-                        smState = SM_CONNECT;
-                        }
-                    });
-                    smState = SM_WAIT;             
-                    break;
-                    case SM_SET_SETTINGS:
-                    var ab = {
-                        Cameras:[
-                        {
-                            Id_Index:0,
-                            Active_Box:true
-                        }
-                        ]
-                    }
-                    api.setDeviceSettings(token,ab,function(statusCode,apiresponse){
-                        if(statusCode == 200){              
-                        smState = SM_POLL
-                        console.log('to poll')
-                        }else{
-                        smState = SM_CONNECT;
-                        }
-                    });
-                    smState = SM_WAIT;             
-                    break;     
-                case SM_POLL:
-                    api.poll(token,function(statusCode,apiresponse){
-                        if(statusCode == 200){
-                            parsePoll(apiresponse, function(response,data){                                                    
-                            smState = response;      
-                            if(smState == SM_UPDATE_FACES){
-                                enrollRecords = data;
-                                enrollBatchIndex = 0;
-                            }else{
-                              if(data){
-                                main_callback(data)
-                              }
-                            }              
-                            });         
-                        }else{
-                            smState = SM_CONNECT;
-                        }
-                    });
-                    smState = SM_WAIT;
-                    break;  
-                case SM_UPDATE_FACES:
-                    var recEnd = (enrollBatchIndex*enrollBatchMax) + enrollBatchMax        
-                    var loopEnd = false;     
-            
-                    console.log(enrollRecords.length,recEnd)
-                    if(enrollRecords.length <= recEnd){
-                        recEnd = (enrollBatchIndex*enrollBatchMax) +  enrollRecords.length - (enrollBatchIndex*enrollBatchMax)
-                        loopEnd = true;
-                        console.log('loopend')
-                    }
-                    console.log(enrollBatchIndex,enrollRecords.length, recEnd)          
-                    console.log('updating faces',(enrollBatchIndex*enrollBatchMax), recEnd)
-                    var up = []
-                    for(i = (enrollBatchIndex*enrollBatchMax); i < recEnd; i++){
-                        var fc = {
-                        Uid:enrollRecords[i].face_id,
-                        Version:enrollRecords[i].face_version,
-                        Data:enrollRecords[i].face_data,
-                        Group:enrollRecords[i].user_group,
-                        GroupId:enrollRecords[i].group_id
-                        }
-                        up.push(fc)
-                    }
-                    var face_data = {
-                        last_update_time:LastFaceUpdate,
-                        updates:up
-                    }
-                    api.updateFaces(token,face_data,function(status,result){            
-                        console.log('face update result',status)
-                        if(loopEnd){
-                        smState = SM_POLL
-                        }else{
-                        enrollBatchIndex += 1
-                        smState = SM_UPDATE_FACES
-                        }
-                    });
-                    smState = SM_WAIT
-                    break;                                                        
-                    
-        }        
-
-
-    }
+                  });
+                  smState = SM_WAIT;             
+                  break;
+                  case SM_SET_SETTINGS:
+                  var ab = {
+                      Cameras:[
+                      {
+                          Id_Index:0,
+                          Active_Box:true
+                      }
+                      ]
+                  }
+                  api.setDeviceSettings(token,ab,function(statusCode,apiresponse){
+                      if(statusCode == 200){              
+                      smState = SM_POLL
+                      }else{
+                      smState = SM_CONNECT;
+                      }
+                  });
+                  smState = SM_WAIT;             
+                  break;     
+              case SM_POLL:
+                  api.poll(token,function(statusCode,apiresponse){
+                      if(statusCode == 200){
+                          if(!readySent && 'DeviceState' in apiresponse && apiresponse['DeviceState'] == 'ready'){
+                            main_callback({
+                              'device_state':'ready'
+                            })
+                            readySent = true
+                          }
+                          parsePoll(apiresponse, function(response,data){                                                    
+                          smState = response;      
+                          if(smState == SM_UPDATE_FACES){
+                              enrollRecords = data;
+                              enrollBatchIndex = 0;
+                          }else{
+                            if(data){
+                              main_callback(data)
+                            }
+                          }              
+                          });         
+                      }else{
+                          smState = SM_CONNECT;
+                      }
+                  });
+                  smState = SM_WAIT;
+                  break;  
+              case SM_UPDATE_FACES:
+                  var recEnd = (enrollBatchIndex*enrollBatchMax) + enrollBatchMax        
+                  var loopEnd = false;               
+                  if(enrollRecords.length <= recEnd){
+                      recEnd = (enrollBatchIndex*enrollBatchMax) +  enrollRecords.length - (enrollBatchIndex*enrollBatchMax)
+                      loopEnd = true;
+                  }
+                  var up = []
+                  for(i = (enrollBatchIndex*enrollBatchMax); i < recEnd; i++){
+                      var fc = {
+                      Uid:enrollRecords[i].face_id,
+                      Version:enrollRecords[i].face_version,
+                      Data:enrollRecords[i].face_data,
+                      Group:enrollRecords[i].user_group,
+                      GroupId:enrollRecords[i].group_id
+                      }
+                      up.push(fc)
+                  }
+                  var face_data = {
+                      last_update_time:LastFaceUpdate,
+                      updates:up
+                  }
+                  api.updateFaces(token,face_data,function(status,result){            
+                      if(loopEnd){
+                      smState = SM_POLL
+                      }else{
+                      enrollBatchIndex += 1
+                      smState = SM_UPDATE_FACES
+                      }
+                  });
+                  smState = SM_WAIT
+                  break;                                                        
+                  
+      }        
 
 }
-
-
 
 
 
@@ -229,7 +226,6 @@ function parsePoll(apiresponse, callback)
             if(data.uid != 'none'){       
               db.getRecordById(data.uid,function(error,result){
                   if(error){
-                    console.log(error)
                     data['record_image'] = ''
                   }
                   if(result && result.length == 1){ 
@@ -304,5 +300,6 @@ function SaveFace(faceData,callback)
 
 module.exports = {
   EnrollData:NewFaceData,
-  StartSM :RunSM
+  SetState:SetState,
+  SetOptions:SetOptions
 }

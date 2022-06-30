@@ -1,11 +1,23 @@
 var https = require("https");
 var qs = require('querystring');
 
-var sysconfig = require('./config')
 
-const ICU_HTTPS_PORT = 44345
+var api_options = {
+    'ip':'192.168.137.8',
+    'api_path':'/api/v1_0',    
+    'port':44345,
+    'ssl':true
+}
+
 
 module.exports = {
+
+    setOptions:function(op){
+
+        Object.keys(op).forEach(key => {
+            api_options[key] = op[key]
+          });  
+    },
      getToken:function (username, password, callback) {
 
     var data = qs.stringify({
@@ -18,8 +30,8 @@ module.exports = {
 
     const options = {
         method: "POST",
-        hostname: sysconfig.api.path,
-        port: ICU_HTTPS_PORT,
+        hostname: api_options.ip,
+        port: api_options.port,
         rejectUnauthorized: false,
         requestCert: true,
         agent: false,        
@@ -44,7 +56,7 @@ module.exports = {
         });
 
         res.on('error', function(error){
-            console.log('error',error)
+
         });
 
     })
@@ -57,14 +69,16 @@ module.exports = {
     req.end()
 
     },poll:function (token,callback) {
+
+
         const options = {
             method: "GET",
-            hostname: sysconfig.api.path,
-            port: ICU_HTTPS_PORT,
+            hostname: api_options.ip,
+            port: api_options.port,
             rejectUnauthorized: false,
             requestCert: true,
             agent: false,                
-            path: sysconfig.api.base_url + '/status?e=1',
+            path: api_options.api_path + '/status?e=1',
             headers: {
                 'Authorization': 'Bearer ' + token,
                 'Content-Type': 'application/json',
@@ -92,12 +106,12 @@ module.exports = {
     getDeviceDetail:function (token,callback) {
         const options = {
             method: "GET",
-            hostname: sysconfig.api.path,
-            port: ICU_HTTPS_PORT,
+            hostname: api_options.ip,
+            port: api_options.port,
             rejectUnauthorized: false,
             requestCert: true,
             agent: false,                
-            path: sysconfig.api.base_url + '/device',
+            path: api_options.api_path + '/device',
             headers: {
                 'Authorization': 'Bearer ' + token,
                 'Content-Type': 'application/json',
@@ -117,7 +131,6 @@ module.exports = {
         })
     
         req.on('error', (error) => {
-            console.log('poll',error)
             callback(500, "");
         });
         req.end()
@@ -126,12 +139,12 @@ module.exports = {
     getDeviceSettings:function (token,callback) {
         const options = {
             method: "GET",
-            hostname: sysconfig.api.path,
-            port: ICU_HTTPS_PORT,
+            hostname: api_options.ip,
+            port: api_options.port,
             rejectUnauthorized: false,
             requestCert: true,
             agent: false,                
-            path: sysconfig.api.base_url + '/settings',
+            path: api_options.api_path + '/settings',
             headers: {
                 'Authorization': 'Bearer ' + token,
                 'Content-Type': 'application/json',
@@ -161,12 +174,12 @@ module.exports = {
 
         const options = {
             method: "POST",
-            hostname: sysconfig.api.path,
-            port: ICU_HTTPS_PORT,
+            hostname: api_options.ip,
+            port: api_options.port,
             rejectUnauthorized: false,
             requestCert: true,
             agent: false,                
-            path: sysconfig.api.base_url + '/settings',
+            path: api_options.api_path + '/settings',
             headers: {
                 'Authorization': 'Bearer ' + token,
                 'Content-Type': 'application/json',
@@ -198,12 +211,12 @@ module.exports = {
 
         const options = {
             method: "POST",
-            hostname: sysconfig.api.path,
-            port: ICU_HTTPS_PORT,
+            hostname: api_options.ip,
+            port: api_options.port,
             rejectUnauthorized: false,
             requestCert: true,
             agent: false,                
-            path: sysconfig.api.base_url + '/imageupdate',
+            path: options.api_path + '/imageupdate',
             headers: {
                 'Authorization': 'Bearer ' + token,
                 'Content-Type': 'application/json',
@@ -235,12 +248,12 @@ module.exports = {
 
         const options = {
             method: "POST",
-            hostname: sysconfig.api.path,
-            port: ICU_HTTPS_PORT,
+            hostname: api_options.ip,
+            port: api_options.port,
             rejectUnauthorized: false,
             requestCert: true,
             agent: false,                
-            path: sysconfig.api.base_url + '/imagedelete',
+            path: api_options.api_path + '/imagedelete',
             headers: {
                 'Authorization': 'Bearer ' + token,
                 'Content-Type': 'application/json',

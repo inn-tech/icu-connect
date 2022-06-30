@@ -1,118 +1,81 @@
+const icu = require("./icu");
+var EventEmitter  = require('events');
+var evObj = new EventEmitter();
 
-const {Worker} = require("worker_threads");
+var session_start = false;
 
-let num = 40;
+var sys_op = {
+    'rate':200
+}
 
-const worker = new Worker("./icu.js", {workerData: {num: num}});
-
-//Listen for a message from worker
-worker.once("message", result => {
-  console.log(`${num}th Fibonacci Number: ${result}`);
-});
-
-worker.on("error", error => {
-  console.log(error);
-});
-
-worker.on("exit", exitCode => {
-  console.log(exitCode);
-})
-
-console.log("Executed in the parent thread");
+function Enroll(data){
+    icu.EnrollData(data)
+}
 
 
+function SetOptions(options)
+{
 
-//const icu = require('./icu')
-//var EventEmitter  = require('events');
-//var eventEmitter = new EventEmitter();
+    if(options !== undefined){
+        //forward options to ICU
+        icu.SetOptions(options);
+        // set this module's options
+        if( 'rate' in options){
+            if(options.rate >= 50 && options.rate <= 1000)
+            sys_op.rate = options.rate
+        }
+   }    
 
-//const sleep = ms => new Promise(r => setTimeout(r, ms));
-
-//module.exports = eventEmitter
-
-//var newSession = false;
-
-
-// eventEmitter.on('test',function(){
-// //    console.log('test')
-// })
-
-
-// run()
-// console.log('mod')
+}
 
 
-// async function runState(){
+function Run(options)
+{
 
+    SetOptions(options)
 
-//     console.log('connect test','run')
+    setInterval(function(){
+        icu.SetState(function(data){
+    
+            if('device_connected' in data){
+                evObj.emit('connected',data.device_data)                
+            }
 
-//     while(true){
+            if('device_state' in data){
+                evObj.emit('device_state',data)
+            }
 
-//         await sleep(600)
-//     // console.log('test1')
-//     // await sleep(600)
+            if(session_start && 'age' in data){
+                evObj.emit('age',data.age)
+            }
+    
+            if(session_start && 'uid' in data && data.uid !== 'none'){
+                evObj.emit('uid',data.age)
+            }
+    
+    
+            if(session_start == false && data.session){
+                evObj.emit('sessionstart',data)
+                session_start = true
+            }else if(session_start == true && !data.session){
+                evObj.emit('sessionend',data)
+                session_start = false            
+            }
+    
+        })
+    },sys_op.rate)    
 
-//         // d = true;
-//         // setTimeout(() => {
-//         //     d = false
-//         //     console.log('tock')
-//         // },6);
-//         // console.log('wait')
-//         // while(d == true){}
-
-//         // console.log('tick')
-
-//     // sleep(500)
-
-//     }
-// }
-
+}
 
 
 
 
-// icu.StartSM(function(icu_data){
-
- 
-
-//     if(icu_data.session){
-//         if(!newSession){
-//             eventEmitter.emit('sessionstart')
-//             newSession = true
-//         }
-
-//         if('age' in icu_data){
-//             eventEmitter.emit('age',{'estimated_age':icu_data.age})
-//         }
-//         if('uid' in icu_data && icu_data.uid !== 'none'){
-//             eventEmitter.emit('id',{'uid':icu_data['uid']})
-//         }
-
-//     }else{
-//         if(newSession){
-//             eventEmitter.emit('sessionend')        
-//             newSession = false
-//         }
-//     }
 
 
-// });
 
-
-// eventEmitter.on('sessionstart',function(){
-//     console.log('start')
-// })
-
-// eventEmitter.on('sessionend',function(){
-//     console.log('end')
-// })
-
-// eventEmitter.on('age',function(data){
-//     console.log(data)
-// })
-
-// eventEmitter.on('uid',function(data){
-//     console.log(data)
-// })
-
+module.exports = {
+    run:Run,
+    icu:evObj,
+    enroll:Enroll, 
+    set_options:SetOptions   
+  }
