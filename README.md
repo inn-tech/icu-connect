@@ -1,6 +1,6 @@
 # ICU Connect
 
-A module to allow a user to connect and use to an Innovative Technology Ltd ICU Lite™ or ICU Pro™
+A npm module to allow a user to connect and use an Innovative Technology Ltd ICU Lite™ or ICU Pro™
 Age/Face verification device.
 
 
