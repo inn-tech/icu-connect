@@ -1,7 +1,6 @@
 # ICU™ Connect
 
-A npm module to allow a user to connect and use an [Innovative Technology Ltd](https://innovative-technology.com) ICU Lite™ or ICU Pro™
-Age/Face verification device.
+A npm module to allow a user to connect and use an Innovative Technology Ltd [ICU Lite™](https://www.intelligent-identification.com/icu-lite) or [ICU Pro™](https://www.intelligent-identification.com/icu-pro) Age/Face biometric verification device.
 
 
 ## Features
@@ -12,6 +11,8 @@ Age/Face verification device.
 - Cross platform
 
 ---
+
+<br />
 
 ## Options
 
@@ -29,6 +30,8 @@ Options can be set at object run function or using the seperate `set_options` re
 |`db_name`|the filename for the databasefile|icu.db|
 
 ---
+
+<br />
 
 ## Usage
 
@@ -167,6 +170,9 @@ icu.on('uid',function(data){
     end
 ```
 ---
+
+<br />
+
 ## Example
 A working example using node and this module can be found on github [icu-connect-example-node](https://github.com/inn-tech/icu-connect-example-node.git)
 
