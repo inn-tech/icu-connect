@@ -36,6 +36,7 @@ var disconnectSent = true
 function SetOptions(op)
 {
   api.setOptions(op)
+  db.setOptions(op)
 }
 
 
@@ -43,7 +44,7 @@ function SetOptions(op)
 function NewFaceData(data){
 
   // add data to array
-//  enrollData.push(data)
+  enrollData.push(data)
 
 }
 
@@ -56,7 +57,16 @@ function SetState(main_callback){
       // get the first array item
         var face = enrollData.pop()   
         // save it to the database. The state-machine will then see a new addition and send it to the ICU
-        SaveFace(face)
+        SaveFace(face,function(err,save_data){
+            if(err){
+              
+            }else{
+              var face_save = {
+                'face_saved':save_data
+              }
+              main_callback(face_save)
+            }
+        })
     }      
 
 
@@ -158,15 +168,15 @@ function SetState(main_callback){
                             readySent = true
                           }
                           parsePoll(apiresponse, function(response,data){                                                    
-                          smState = response;      
-                          if(smState == SM_UPDATE_FACES){
-                              enrollRecords = data;
-                              enrollBatchIndex = 0;
-                          }else{
-                            if(data){
-                              main_callback(data)
-                            }
-                          }              
+                            smState = response;      
+                            if(smState == SM_UPDATE_FACES){
+                                enrollRecords = data;
+                                enrollBatchIndex = 0;
+                            }else{
+                              if(data){
+                                main_callback(data)
+                              }
+                            }              
                           });         
                       }else{
                           disconnectSent = false
@@ -219,6 +229,8 @@ function parsePoll(apiresponse, callback)
 
   var data = null
 
+
+
   if(('FaceInFrame' in apiresponse && apiresponse.FaceInFrame[0].Face) || 
       (apiresponse.Detections !== null && apiresponse.Detections.length > 0) ){
 
@@ -229,8 +241,7 @@ function parsePoll(apiresponse, callback)
             data = {
                 age:apiresponse.Detections[0].Age,
                 uid:apiresponse.Detections[0].Uid,
-                image:apiresponse.Detections[0].Image,
-                feature:apiresponse.Detections[0].Feature
+                image:apiresponse.Detections[0].Image
             }
 
             data['session'] = true
@@ -248,6 +259,7 @@ function parsePoll(apiresponse, callback)
                
             }else{
                 data['record_image'] = ''
+                data['feature'] = apiresponse.Detections[0].Feature
             }
 
           }else{
@@ -300,9 +312,14 @@ function SaveFace(faceData,callback)
 
         db.addFace(face,function(err,result){
             if(err){
-                callback('fail')
+                callback(err,'fail')
             }else{
-                callback('ok')
+                var face_data = {
+                  'uid':face.face_id,
+                  'image':face.face_image,
+                  'timeadded':face.added
+                }
+                callback(null,face_data)
             }
         });  
 

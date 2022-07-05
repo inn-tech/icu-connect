@@ -1,6 +1,6 @@
 {
   "name": "icu-connect",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "connect and run Innovative Technology ICU™ device ",
   "main": "index.js",
   "scripts": {

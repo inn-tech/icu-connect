@@ -17,7 +17,9 @@ module.exports = {
     setOptions:function(op){
 
         Object.keys(op).forEach(key => {
-            api_options[key] = op[key]
+            if(key in api_options){
+                api_options[key] = op[key]
+            }
           });  
     },
      getToken:function (callback) {
@@ -217,7 +219,7 @@ module.exports = {
             rejectUnauthorized: false,
             requestCert: true,
             agent: false,                
-            path: options.api_path + '/imageupdate',
+            path: api_options.api_path + '/imageupdate',
             headers: {
                 'Authorization': 'Bearer ' + token,
                 'Content-Type': 'application/json',

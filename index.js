@@ -51,10 +51,16 @@ function Run(options)
                     evObj.emit('device_state',data)
                 }
 
+                if('face_saved' in data){
+                    evObj.emit('face_saved',data['face_saved'])
+                }
+
+
                 if(session_start && 'age' in data && 'uid' in data && data.uid === 'none'){
                     var c_data = {
                         'estimated_age':data.age,
-                        'captured_image':data.image
+                        'captured_image':data.image,
+                        'feature':data.feature
                     }
                     evObj.emit('age',c_data)
                 }

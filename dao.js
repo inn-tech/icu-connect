@@ -1,8 +1,13 @@
 var sqlite3 = require('sqlite3');
-const path = require('path')
+const path = require('path');
+const icu = require('./icu');
 const cwd = __dirname
-const databasePath = path.join(cwd,'/mcu.db')
 
+var db_options = {
+    'db_dir':cwd,
+    'db_name':'icu.db'
+}
+var databasePath = path.join(db_options.db_dir,'/' + db_options.db_name)
 
 
 var db = new sqlite3.Database(databasePath, sqlite3.OPEN_READWRITE, (err) => {
@@ -13,7 +18,7 @@ var db = new sqlite3.Database(databasePath, sqlite3.OPEN_READWRITE, (err) => {
         } else if (err) {
             exit(1);
     }
-   // runQueries(db);
+
 });
 
 
@@ -46,6 +51,28 @@ function runQueries(newdb) {
 
 
 module.exports = {
+
+    setOptions:function(op){
+        Object.keys(op).forEach(key => {
+            if(key in db_options){
+                db_options[key] = op[key]
+                
+            }
+          });  
+
+        if('db_path' in op || 'db_name' in op){
+            // database not default - re-set path and create new if necessary.
+            databasePath = path.join(db_options.db_dir,'/' + db_options.db_name)
+            db = new sqlite3.Database(databasePath, sqlite3.OPEN_READWRITE, (err) => {
+                if (err && err.code == "SQLITE_CANTOPEN") {
+                    createDatabase();
+                    return;
+                    } else if (err) {
+                        exit(1);
+                }            
+            });        
+        }
+    },    
     addFace:function (faceData, callback){
         db.run('INSERT INTO SystemFaces (`face_id`,`face_data`,`firstname`,`surname`,`user_group`,`group_id`,`face_version`,`face_image`,`added`) VALUES (?,?,?,?,?,?,?,?,?)',
         [faceData.face_id,faceData.face_data,faceData.firstname,faceData.surname,faceData.user_group,faceData.group_id,faceData.face_version,faceData.face_image,faceData.added], function(error,row){
