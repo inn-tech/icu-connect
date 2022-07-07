@@ -1,6 +1,6 @@
 {
   "name": "icu-connect",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "connect and run Innovative Technology ICU™ device ",
   "main": "index.js",
   "scripts": {
@@ -10,7 +10,7 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/inn-tech/icu-connect.git"
-  },  
+  },
   "keywords": [
     "icu",
     "itl",
