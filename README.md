@@ -71,8 +71,6 @@ icu.on('disconnected',function(){
     console.log('device disconnected')
 })
 
-
-
 /* 
     device_state event - data parmeter shows 'initialising' or 'ready'
 */ 
@@ -109,44 +107,15 @@ icu.on('uid',function(data){
     console.log('detected age with id',data.estimated_age,data.uid)
 })
 
-
-
-
 /* 
-    device_state event - data parmeter shows 'initialising' or 'ready'
+    The face parameters have been saved in the system
 */ 
-icu.on('device_state',function(data){
-    console.log('state',data)
+icu.on('face_saved',function(data){
+    console.log('face_saved')
 })
 
 
-/* 
-    A face has been detected by the ICU and a detection session has started
-*/ 
-icu.on('sessionstart',function(){
-    console.log('start')
-})
 
-/* 
-    The face is no longer detected by the ICU device
-*/ 
-icu.on('sessionend',function(){
-    console.log('end')
-})
-
-/* 
-    The detected face has not beed identifed and estimated age is given
-*/ 
-icu.on('age',function(data){
-    console.log(data.estimated_age)
-})
-
-/* 
-    The detected face has been identifed as matching a stored ID
-*/ 
-icu.on('uid',function(data){
-    console.log(data.estimated_age,data.uid)
-})
 ```
 ### output
 ```
