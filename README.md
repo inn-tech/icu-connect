@@ -94,7 +94,7 @@ icu.on('sessionend',function(){
 })
 
 /* 
-    The detected face has not beed identifed and estimated age is given
+    The detected face has not been identifed and estimated age is given
 */ 
 icu.on('age',function(data){
     console.log('detected age (no id)',data.estimated_age)

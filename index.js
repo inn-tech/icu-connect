@@ -5,7 +5,7 @@ var evObj = new EventEmitter();
 var session_start = false;
 
 var sys_op = {
-    'rate':200
+    'rate':100
 }
 
 function Enroll(data){
@@ -19,11 +19,6 @@ function SetOptions(options)
     if(options !== undefined){
         //forward options to ICU
         icu.SetOptions(options);
-        // set this module's options
-        if( 'rate' in options){
-            if(options.rate >= 50 && options.rate <= 1000)
-            sys_op.rate = options.rate
-        }
    }    
 
 }

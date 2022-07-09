@@ -12,6 +12,7 @@ const SM_DETAIL = 4;
 const SM_GET_SETTINGS = 5;
 const SM_SET_SETTINGS = 6;
 const SM_PURGE_FACES = 7;
+const SM_TOKEN_REFRESH = 8;
 
 
 var smState = SM_CONNECT;
@@ -30,6 +31,9 @@ var noFaceCount = 0
 var faceCount = 0
 var readySent = false
 var disconnectSent = true
+var tokenRefreshTick = 0
+const TOKEN_REFRESH_TIME =  (60 * 2 * 60 * 1000)/10;
+
 
 
 
@@ -50,6 +54,15 @@ function NewFaceData(data){
 
 
 function SetState(main_callback){
+
+    // check for token refresh
+    tokenRefreshTick++;
+    if(smState == SM_POLL){
+      if(tokenRefreshTick >= TOKEN_REFRESH_TIME){
+        smState = SM_TOKEN_REFRESH
+        tokenRefreshTick = 0;
+      }
+    }
 
 
     // check for any enrollments (any items on array)
@@ -75,6 +88,8 @@ function SetState(main_callback){
           // do nothing             
             break;
           case SM_CONNECT:
+            console.log(TOKEN_REFRESH_TIME)
+            tokenRefreshTick = 0            
             if(!disconnectSent){
               var c_data = {
                 'device_connected':false,
@@ -93,6 +108,18 @@ function SetState(main_callback){
             });
             smState = SM_WAIT;
             break;
+            case SM_TOKEN_REFRESH:
+              api.getToken(function (statusCode, apiresponse) {
+                if (statusCode == 200) {
+                  token = apiresponse.access_token
+                  smState = SM_POLL
+                  tokenRefreshTick = 0;                                   
+                } else {                 
+                  smState = SM_CONNECT
+                }
+              });       
+              smState = SM_WAIT;                     
+              break;            
             case SM_DETAIL:
               api.getDeviceDetail(token,function(statusCode,apiresponse){
                 if(statusCode == 200){
